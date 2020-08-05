@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>FootballApp</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="/src/css/materialize.min.css" rel="stylesheet">
+    <link href="/manifest.json" rel="manifest"/>
+    <link href="/src/images/favicon.ico" rel="icon">
+    <style>
+        .inline {
+            display: flex;
+            align-content: center;
+            align-items: center;
+        }
+
+        .inline > * {
+            margin: 0 10px;
+        }
+
+        .loading {
+            background: #ffecb3;
+            border: 1px solid #ffa000;
+            width: 150px;
+            margin: 20px auto;
+            display: none;
+            justify-content: center;
+        }
+
+        .underline-hover:hover {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        @media screen and (max-width: 900px) and (min-width: 400px) {
+            .inline {
+                display: flex;
+                flex-direction: column;
+                align-content: center;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<nav class="grey darken-3" role="navigation">
+    <div class="nav-wrapper container">
+        <a class="brand-logo" href="./index.html" id="logo-container" style="font-size: 16pt;">Football <span
+                class="amber-text darken-2" style="font-weight: bold;">APP</span></a>
+        <a class="sidenav-trigger" data-target="nav-mobile" href="./index.html">
+            <i class="material-icons">arrow_back</i>
+        </a>
+
+        <ul class="topnav right hide-on-med-and-down">
+
+        </ul>
+        <ul class="sidenav" id="nav-mobile"></ul>
+    </div>
+</nav>
+
+<div class="loading">
+    <p class="grey-text darken-4">Loading...</p>
+</div>
+
+<div class="container" id="body-content"></div>
+
+<div class="fixed-action-btn">
+    <a class="btn-floating btn-large amber darken-2" id="save">
+        <i class="large material-icons">bookmark</i>
+    </a>
+</div>
+
+<script src="/src/js/materialize.min.js"></script>
+<script src="/src/js/api.js"></script>
+<script src="/src/js/idb.js"></script>
+<script src="/src/js/db.js"></script>
+
+<script>
+    function registerServiceWorker() {
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .catch(err => console.log("Error while registering service worker. ERROR:" + err));
+        }
+    }
+
+    function requestNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission()
+                .catch(err => console.log("Error while requesting notification permission. ERROR: " + err));
+        }
+    }
+
+    function registerPushManager() {
+            if ('PushManager' in window) {
+                navigator.serviceWorker.getRegistration().then((registration) => {
+                    registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: urlBase64ToUint8Array("BDyzryZ-NuYhwb9WmgXENhmWTCN11VX_XjWHnGL_7daiQj8RSHWXl6PvJDMtjwgSo7a7z4jW5Br4htB71R9w-Hw")
+                    })
+                        .then((subscribe) => {
+                            console.log('Berhasil melakukan subscribe dengan endpoint: ', subscribe.endpoint);
+                            console.log('Berhasil melakukan subscribe dengan p256dh key: ', btoa(String.fromCharCode.apply(null, new Uint8Array(subscribe.getKey('p256dh')))));
+                            console.log('Berhasil melakukan subscribe dengan auth key: ', btoa(String.fromCharCode.apply(null, new Uint8Array(subscribe.getKey('auth')))));
+                        })
+                        .catch(e => {
+                            console.error('Tidak dapat melakukan subscribe ', e.message);
+                        });
+                })
+            }
+        }
+
+        function urlBase64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        registerServiceWorker();
+        requestNotificationPermission();
+        registerPushManager();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const param = Number(urlParams.get("id"));
+        const saved = Boolean(urlParams.get("saved"));
+
+        let item = null;
+        let isSaved = false;
+
+        if (!param) {
+            document.getElementById("body-content").innerHTML = `<p class="center-align" style="margin-top: 20px;">Team detail not available.</p>`;
+        }
+
+        checkData("team", param)
+            .then(data => {
+                if (data || saved) {
+                    btn_fav.childNodes[1].innerText = "delete";
+                    isSaved = true;
+                } else {
+                    btn_fav.childNodes[1].innerText = "bookmark";
+                    isSaved = false;
+                }
+            })
+            .catch(err => {
+            });
+        
+            if (saved || isSaved) {
+                item = getSavedArticleById("team", param);
+            } else {
+                item = getTeamDetail(param);
+            }
+
+        const btn_fav = document.querySelector("#save");
+        btn_fav.addEventListener("click", (event) => {
+            event.preventDefault();
+            item.then((data) => {
+                if (!isSaved) {
+                    createData("team", data);
+                    location.reload();
+                } else {
+                    deleteData("team", param);
+                    window.location = "index.html";
+                }
+            });
+        });
+    });
+</script>
+</body>
+
+</html>
