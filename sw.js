@@ -27,7 +27,9 @@ workbox.precaching.precacheAndRoute([
     { url: "/src/js/materialize.js", revision: "1" },
     { url: "/src/js/materialize.min.js", revision: "1" },
     { url: "/src/js/nav.js", revision: "1" },
-]);
+], {
+    ignoreUrlParametersMatching: [/.*/]
+});
 
 workbox.routing.registerRoute(
     /\.(?:png|gif|jpg|jpeg|svg|ico)$/,
